@@ -1,34 +1,35 @@
-apiVersion: v1
-kind: Pod
-metadata:
-  name: pod-1
-  labels:
-    project: roboshop
-    tier: database
-spec:
-  containers:
-  - name: nginx
-    image: nginx
----
-apiVersion: v1
-kind: Pod
-metadata:
-  name: pod-2
-  labels:
-    project: roboshop
-    tier: backend
-spec:
-  affinity:
-    podAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-      - labelSelector:
-          matchExpressions:
-          - key: tier
-            operator: In
-            values:
-            - database
-        topologyKey: topology.kubernetes.io/zone # border is AZ
-  containers:
-  - name: nginx
-    image: nginx
-    
+# ===================== POD 1: the "target" pod =====================
+apiVersion: v1                                  # Core API version, where Pod objects live
+kind: Pod                                       # Creating a single standalone Pod
+metadata:                                       # Identifying info
+  name: pod-1                                   # Pod name
+  labels:                                       # Labels on this Pod (pod-2's rule looks for these)
+    project: roboshop                           # Belongs to the roboshop project
+    tier: database                              # Marked as a database-tier pod (the key label here)
+spec:                                           # Desired state of the Pod
+  containers:                                   # List of containers
+  - name: nginx                                 # Container name
+    image: nginx                                # nginx image (stands in for a real database)
+---                                             # Separator: next Kubernetes object starts here
+# ===================== POD 2: the pod with the affinity rule =====================
+apiVersion: v1                                  # Core API version for Pod
+kind: Pod                                       # Another standalone Pod
+metadata:                                       # Identifying info
+  name: pod-2                                   # Pod name
+  labels:                                       # Labels on this Pod
+    project: roboshop                           # Belongs to the roboshop project
+    tier: backend                               # Marked as a backend-tier pod
+spec:                                           # Desired state of the Pod
+  affinity:                                     # Placement rules
+    podAffinity:                                # Rules based on OTHER PODS' labels (not node labels)
+      requiredDuringSchedulingIgnoredDuringExecution:   # HARD rule: must match, or pod-2 stays Pending
+      - labelSelector:                          # Which existing pods to look for
+          matchExpressions:                     # Conditions those pods must satisfy
+          - key: tier                           # Look at the pods' "tier" label
+            operator: In                        # Label value must be in the list below
+            values:                             # Accepted values
+            - database                          # Find pods with tier=database (i.e., pod-1)
+        topologyKey: topology.kubernetes.io/zone   # "Same place" means same availability zone
+  containers:                                   # List of containers
+  - name: nginx                                 # Container name
+    image: nginx                                # nginx image (stands in for a backend app)

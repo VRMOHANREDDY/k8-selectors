@@ -1,0 +1,19 @@
+apiVersion: v1                      # Core API version, where Pod objects live
+kind: Pod                           # Creating a single standalone Pod
+metadata:                           # Identifying info about the Pod
+  name: nginx-tolerated             # Pod name (shows it has a toleration)
+  labels:                           # Labels on the Pod itself
+    project: roboshop               # Belongs to the roboshop project
+    environment: dev                # Running in the dev environment
+    purpose: poc                    # Proof of concept / testing pod
+spec:                               # Desired state of the Pod
+  containers:                       # List of containers in the Pod
+  - name: nginx                     # Container name
+    image: nginx                    # nginx image from Docker Hub (latest tag)
+  tolerations:                      # "Passes" that let this Pod ignore certain node taints
+  - key: "hardware"                 # Matches a taint whose key is "hardware"
+    operator: "Equal"               # Key AND value must both match exactly
+    value: "gpu"                    # Taint value must be "gpu"
+    effect: "NoExecute"             # Tolerates the NoExecute effect (won't be blocked or evicted)
+  nodeSelector:                     # Run only on nodes carrying ALL the labels below
+    project: roboshop               # The node must have the label project=roboshop

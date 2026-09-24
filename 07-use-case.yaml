@@ -1,0 +1,66 @@
+# ===================== 1. REDIS CACHE DEPLOYMENT =====================
+apiVersion: apps/v1                             # "apps" API group, where Deployments live
+kind: Deployment                                # Manages a set of identical, replaceable pods
+metadata:                                       # Identifying info
+  name: redis-cache                             # Deployment name (no namespace, so it goes to "default")
+spec:                                           # Desired state of the Deployment
+  selector:                                     # How the Deployment finds the pods it owns
+    matchLabels:                                # Pods must have these labels
+      app: store                                # Owns pods labeled app=store
+  replicas: 3                                   # Run 3 Redis pods
+  template:                                     # Blueprint used to create each pod
+    metadata:                                   # Pod metadata
+      labels:                                   # Labels applied to each pod
+        app: store                              # Every Redis pod gets app=store
+    spec:                                       # Pod specification
+      affinity:                                 # Placement rules
+        podAntiAffinity:                        # Rule to keep pods AWAY from certain pods
+          requiredDuringSchedulingIgnoredDuringExecution:   # HARD rule: pod stays Pending if it can't be met
+          - labelSelector:                      # Which pods to stay away from
+              matchExpressions:                 # Conditions those pods must satisfy
+              - key: app                        # Look at the pods' "app" label
+                operator: In                    # Value must be in the list below
+                values:                         # Values to avoid
+                - store                         # Avoid other Redis pods (app=store)
+            topologyKey: "kubernetes.io/hostname"   # "Away" means a different node, so 1 Redis per node
+      containers:                               # List of containers in the pod
+      - name: redis-server                      # Container name
+        image: redis:3.2-alpine                 # Old Redis 3.2 on a small Alpine Linux base
+---                                             # Separator: next Kubernetes object starts here
+# ===================== 2. WEB SERVER DEPLOYMENT =====================
+apiVersion: apps/v1                             # "apps" API group, where Deployments live
+kind: Deployment                                # Manages a set of identical, replaceable pods
+metadata:                                       # Identifying info
+  name: web-server                              # Deployment name
+spec:                                           # Desired state of the Deployment
+  selector:                                     # How the Deployment finds the pods it owns
+    matchLabels:                                # Pods must have these labels
+      app: web-store                            # Owns pods labeled app=web-store
+  replicas: 3                                   # Run 3 web server pods
+  template:                                     # Blueprint used to create each pod
+    metadata:                                   # Pod metadata
+      labels:                                   # Labels applied to each pod
+        app: web-store                          # Every web pod gets app=web-store
+    spec:                                       # Pod specification
+      affinity:                                 # Placement rules
+        podAntiAffinity:                        # Rule 1: stay AWAY from certain pods
+          requiredDuringSchedulingIgnoredDuringExecution:   # HARD rule
+          - labelSelector:                      # Which pods to stay away from
+              matchExpressions:                 # Conditions those pods must satisfy
+              - key: app                        # Look at the pods' "app" label
+                operator: In                    # Value must be in the list below
+                values:                         # Values to avoid
+                - web-store                     # Avoid other web pods (app=web-store)
+            topologyKey: "kubernetes.io/hostname"   # Different node, so 1 web pod per node
+        podAffinity:                            # Rule 2: stay NEAR certain pods
+          requiredDuringSchedulingIgnoredDuringExecution:   # HARD rule
+          - labelSelector:                      # Which pods to stay near
+              matchExpressions:                 # Conditions those pods must satisfy
+              - key: app                        # Look at the pods' "app" label
+                operator: In                    # Value must be in the list below
+                values:                         # Values to look for
+                - store                         # Be near a Redis pod (app=store)
+            topologyKey: "kubernetes.io/hostname"   # "Near" means the same node as a Redis pod
+      containers:                               # List of containers in the pod
+      - name: web-app                           # Container name
+        image: nginx:1.16-alpine                # Old nginx 1.16 on a small Alpine Linux base

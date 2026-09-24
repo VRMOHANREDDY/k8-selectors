@@ -1,0 +1,33 @@
+apiVersion: v1                                          # Core API version, where Pod objects live
+kind: Pod                                               # Creating a single standalone Pod
+metadata:                                               # Identifying info
+  name: with-node-affinity                              # Pod name (no namespace, so it goes to "default")
+spec:                                                   # Desired state of the Pod
+  affinity:                                             # Rules about where this Pod should be placed
+    nodeAffinity:                                       # Rules based on NODE labels
+      requiredDuringSchedulingIgnoredDuringExecution:   # HARD rule: must match, or the Pod stays Pending
+        nodeSelectorTerms:                              # List of terms; a node matching ANY one term qualifies
+        - matchExpressions:                             # Conditions in this term; ALL must be true
+          - key: topology.kubernetes.io/zone            # Built-in node label showing the node's AWS availability zone
+            operator: In                                # Node's zone must be one of the values below
+            values:                                     # Allowed zones
+            - us-east-1c                                # Zone 1c is allowed
+            - us-east-1b                                # Zone 1b is allowed
+      preferredDuringSchedulingIgnoredDuringExecution:  # SOFT rules: nice-to-have, used for ranking nodes
+      - weight: 100                                     # Strong preference (max weight is 100)
+        preference:                                     # What this preference looks for
+          matchExpressions:                             # Condition for this preference
+          - key: topology.kubernetes.io/zone            # Check the node's zone label
+            operator: In                                # Zone must be in the list below
+            values:                                     # Preferred zone
+            - us-east-1b                                # Most preferred: us-east-1b
+      - weight: 10                                      # Weak preference
+        preference:                                     # What this preference looks for
+          matchExpressions:                             # Condition for this preference
+          - key: topology.kubernetes.io/zone            # Check the node's zone label
+            operator: In                                # Zone must be in the list below
+            values:                                     # Preferred zone
+            - us-east-1c                                # Second choice: us-east-1c
+  containers:                                           # List of containers in the Pod
+  - name: nginx                                         # Container name
+    image: nginx                                        # nginx image from Docker Hub (latest tag)

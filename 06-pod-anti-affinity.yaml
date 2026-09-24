@@ -1,0 +1,35 @@
+# ===================== POD 3: an existing database pod =====================
+apiVersion: v1                                  # Core API version, where Pod objects live
+kind: Pod                                       # Creating a single standalone Pod
+metadata:                                       # Identifying info
+  name: pod-3                                   # Pod name
+  labels:                                       # Labels on this Pod (pod-4's rule looks for these)
+    project: roboshop                           # Belongs to the roboshop project
+    tier: database                              # Marked as a database-tier pod
+spec:                                           # Desired state of the Pod
+  containers:                                   # List of containers
+  - name: nginx                                 # Container name
+    image: nginx                                # nginx image (stands in for a real database)
+---                                             # Separator: next Kubernetes object starts here
+# ===================== POD 4: database pod with anti-affinity =====================
+apiVersion: v1                                  # Core API version for Pod
+kind: Pod                                       # Another standalone Pod
+metadata:                                       # Identifying info
+  name: pod-4                                   # Pod name
+  labels:                                       # Labels on this Pod
+    project: roboshop                           # Belongs to the roboshop project
+    tier: database                              # Also a database-tier pod
+spec:                                           # Desired state of the Pod
+  affinity:                                     # Placement rules
+    podAntiAffinity:                            # Rules to stay AWAY from certain pods
+      requiredDuringSchedulingIgnoredDuringExecution:   # HARD rule: if it can't be avoided, pod-4 stays Pending
+      - labelSelector:                          # Which pods to avoid
+          matchExpressions:                     # Conditions those pods must satisfy
+          - key: tier                           # Look at the pods' "tier" label
+            operator: In                        # Label value must be in the list below
+            values:                             # Values to avoid
+            - database                          # Avoid pods with tier=database
+        topologyKey: "kubernetes.io/hostname"   # "Away" means a different node (host)
+  containers:                                   # List of containers
+  - name: nginx                                 # Container name
+    image: nginx                                # nginx image

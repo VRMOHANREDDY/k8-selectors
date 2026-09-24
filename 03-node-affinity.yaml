@@ -12,7 +12,7 @@ spec:                                                   # Desired state of the P
             operator: In                                # Node's zone must be one of the values below
             values:                                     # Allowed zones
             - us-east-1c                                # Zone 1c is allowed
-            - us-east-1b                                # Zone 1b is allowed
+            - us-east-1d                                # Zone 1b is allowed
       preferredDuringSchedulingIgnoredDuringExecution:  # SOFT rules: nice-to-have, used for ranking nodes
       - weight: 100                                     # Strong preference (max weight is 100)
         preference:                                     # What this preference looks for
